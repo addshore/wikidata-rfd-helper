@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Highlight Non-Notable Properties on Wikidata (Fork)
+// @name         Highlight Non-Notable Properties on Wikidata
 // @namespace    https://www.wikidata.org/
 // @version      1.0
 // @downloadURL  https://raw.githubusercontent.com/addshore/wikidata-rfd-helper/refs/heads/main/script.js
@@ -48,6 +48,8 @@
                 return false;
             };
             title.appendChild(link);
+
+            checkNoStatements();
         }
         // If we are on wiki/Wikidata:Requests_for_deletions, add stuff
         if (window.location.pathname.match(/\/wiki\/Wikidata:Requests_for_deletions/)) {
@@ -150,7 +152,14 @@
     }
 
     // TODO if thee are 0 terms (labels descriptions aliases), draw a red outline around the terms section
-    // TODO if there are 0 statements, draw a red outline around the statements section
+
+    function checkNoStatements() {
+      const statementList = document.querySelector('#claims + .wikibase-statementgrouplistview > .wikibase-listview')
+      if (statementList.childElementCount === 0) {
+         document.querySelector('#claims').style.borderBottom = '1px solid red';
+      }
+    }
+
     // TODO if a statement has 0 references, draw a red outline around the references sections
 
     function checkStatementGroups() {
