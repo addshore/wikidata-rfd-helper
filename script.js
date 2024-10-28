@@ -37,11 +37,9 @@
     function checkNonNotableProperties() {
         // Select all statement group elements with an ID
         const elements = document.querySelectorAll('#identifiers + div .wikibase-statementgroupview[id]');
-        console.log(elements);
 
         elements.forEach(async (element) => {
             const id = element.id;
-            console.log(id)
             const apiURL = `https://www.wikidata.org/wiki/Special:EntityData/${id}.json`;
 
             try {
@@ -52,11 +50,16 @@
                 const isNotNotable = entity.claims?.P31?.some(statement => {
                     return statement.mainsnak?.datavalue?.value?.id === 'Q62589320';
                 });
+                const isMaybeNotable = entity.claims?.P31?.some(statement => {
+                    return statement.mainsnak?.datavalue?.value?.id === 'Q62589316';
+                });
 
                 // If it's not notable, apply the red outline
                 if (isNotNotable) {
-                	console.log('highlighting');
                     element.style.outline = '2px solid red';
+                }
+                if (isMaybeNotable) {
+                    element.style.outline = '2px solid lightgreen';
                 }
             } catch (error) {
                 console.error(`Error fetching data for ${id}:`, error);
