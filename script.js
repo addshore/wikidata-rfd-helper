@@ -12,18 +12,6 @@
 (function() {
     'use strict';
 
-    if (document.referrer !== 'https://www.wikidata.org/wiki/Wikidata:Requests_for_deletions') {
-        // https://stackoverflow.com/questions/40153206/detect-if-console-devtools-is-open-in-all-browsers
-        // TODO add a button to trigger "RFD" view, instead of this debug check
-        var minimalUserResponseInMiliseconds = 100;
-        var before = new Date().getTime();
-        debugger;
-        var after = new Date().getTime();
-        if (after - before < minimalUserResponseInMiliseconds) { // user had to resume the script manually via opened dev tools
-          return
-        }
-    }
-
     // Helper function to request JSON from a URL
     function fetchJSON(url) {
         return new Promise((resolve, reject) => {
@@ -43,6 +31,31 @@
                 }
             });
         });
+    }
+
+    function addLinkToTitle() {
+        // Add a link to the end of the inner HTML of wikibase-title, called "RFD view", which runs checkStatementGroups and checkSitelinks
+        const title = document.querySelector('.wikibase-title');
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = 'RFD view';
+        link.onclick = function() {
+            runAllChecks();
+            return false;
+        };
+        title.appendChild(link);
+    }
+
+    function loadOnRFDRefer() {
+        // If the URL contains "Special:EntityData", run checkStatementGroups and checkSitelinks
+        if (document.referrer === 'https://www.wikidata.org/wiki/Wikidata:Requests_for_deletions') {
+            runAllChecks();
+        }
+    }
+
+    function runAllChecks() {
+        checkSitelinks();
+        checkStatementGroups();
     }
 
     function sitelinkIds() {
@@ -113,6 +126,7 @@
                 if (referenceViews.length === 0) {
                     statementView.style.outline = '2px solid red';
                 }
+                let referenceViewStates = [];
                 referenceViews.forEach(async (referenceView) => {
                     const snakLists = referenceView.querySelectorAll('.wikibase-snaklistview');
                     let propertyValueMap = {};
@@ -123,6 +137,8 @@
                     });
                     if (propertyValueMap[P_basedOnHeuristic]) {
                         referenceView.style.outline = '2px solid red';
+                        referenceViewStates.push('red');
+                        return;
                     }
                     const badList = [
                         'amazon.com',
@@ -133,13 +149,19 @@
                         const domain = new URL(url).hostname;
                         if (badList.includes(domain)) {
                             referenceView.style.outline = '2px solid red';
+                            referenceViewStates.push('red');
+                            return;
                         }
                     }
                 });
+                // If there are the same number of red reference views as there are reference views, then the statement view should be red
+                if (referenceViewStates.length === referenceViews.length) {
+                    statementView.style.outline = '2px solid red';
+                }
             });
         });
     }
 
-    window.addEventListener('load', checkStatementGroups);
-    window.addEventListener('load', checkSitelinks);
+    window.addEventListener('load', addLinkToTitle);
+    window.addEventListener('load', loadOnRFDRefer);
 })();
