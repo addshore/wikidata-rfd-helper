@@ -154,6 +154,7 @@
     function checkStatementGroups() {
         console.log('Checking statement groups');
         const siteIds = sitelinkIds();
+        const P_importedFromWikimedia = 'P143';
         const P_referenceUrl = 'P854';
         const P_basedOnHeuristic = 'P887';
 
@@ -199,18 +200,46 @@
                     statementView.style.outline = '2px solid red';
                 }
                 let referenceViewStates = [];
-                referenceViews.forEach(async (referenceView) => {
+                await Promise.all(Array.from(referenceViews).map(async (referenceView) => {
                     const snakLists = referenceView.querySelectorAll('.wikibase-snaklistview');
                     let propertyValueMap = {};
                     snakLists.forEach((snakList) => {
                         const propertyId = snakList.querySelector('.wikibase-snakview-property').childNodes[0].href.match(/Property:(P\d+)/)[1];
-                        const propertyValue = snakList.querySelector('.wikibase-snakview-value').textContent;
+                        // For entities, we have <a href="/wiki/Q328" original-title="English-language edition of Wikipedia">English Wikipedia</a>
+                        const textContent = snakList.querySelector('.wikibase-snakview-value').textContent;
+                        const aElement = snakList.querySelector('.wikibase-snakview-value a');
+                        let propertyValue;
+                        if (aElement && aElement.href === 'https://www.wikidata.org/wiki/Q328') {
+                            propertyValue = aElement.href.split('/').pop();
+                        } else {
+                            propertyValue = textContent;
+                        }
                         propertyValueMap[propertyId] = propertyValue;
                     });
                     if (propertyValueMap[P_basedOnHeuristic]) {
                         referenceView.style.outline = '2px solid red';
                         referenceViewStates.push('red');
                         return;
+                    }
+                    if (propertyValueMap[P_importedFromWikimedia]) {
+                        // we need to load the value of the snak, so that we can get the wiki site code, and see if this item is linked to an article for it
+                        const snakValue = propertyValueMap[P_importedFromWikimedia];
+                        console.log('Checking imported from wikimedia:', snakValue);
+                        const wikiSiteData = await fetchJSON(`https://www.wikidata.org/wiki/Special:EntityData/${snakValue}.json`);
+                        const wikiSiteEntity = wikiSiteData.entities[snakValue];
+                        // There should be one P1800 value, and that is out oursiteid
+                        if (wikiSiteEntity.claims.P1800 && wikiSiteEntity.claims.P1800.length != 1) {
+                            console.error('There should be exactly one P1800 value for a wiki site entity');
+                            return;
+                        }
+                        const wikiSiteId = wikiSiteEntity.claims.P1800[0].mainsnak.datavalue.value;
+                        if (!siteIds.includes(wikiSiteId)) {
+                            referenceView.style.outline = '2px solid red';
+                            referenceViewStates.push('red');
+                        } else {
+                            referenceView.style.outline = '2px solid lightgreen';
+                            referenceViewStates.push('lightgreen');
+                        }
                     }
                     const badList = [
                         // Shops
@@ -247,7 +276,7 @@
                             return;
                         }
                     }
-                });
+                }));
                 // If there are the same number of red reference views as there are reference views, then the statement view should be red
                 if (referenceViewStates.length === referenceViews.length) {
                     statementView.style.outline = '2px solid red';
