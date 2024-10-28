@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Highlight Non-Notable Properties on Wikidata (Fork)
+// @name         Highlights non-notable parts of Wikidata items (Fork)
 // @namespace    https://www.wikidata.org/
 // @version      1.0
-// @description  Highlights non-notable properties on Wikidata
-// @author       User:Shisma
+// @description  Highlights non-notable parts of Wikidata items
+// @author       User:Shisma,User:Addshore
 // @match        https://www.wikidata.org/wiki/*
 // @grant        GM_xmlhttpRequest
 // @run-at       document-end
@@ -67,6 +67,28 @@
         });
     }
 
-    // Run the check once the page has loaded
+    function sitelinkIds() {
+        const elements = document.querySelectorAll('div.wikibase-sitelinkgrouplistview > div .wikibase-sitelinkview-siteid');
+        let siteIds = [];
+        elements.forEach(async (element) => {
+            // className gives you something like 'wikibase-sitelinkview-siteid wikibase-sitelinkview-siteid-arzwiki'
+            // we want to extract arzwiki using a regex
+            const siteId = element.className.match(/wikibase-sitelinkview-siteid-(\w+)/)[1];
+            siteIds.push(siteId);
+        });
+        return siteIds;
+    }
+
+    function checkSitelinks() {
+        const siteIds = sitelinkIds();
+        if (siteIds.length === 0) {
+            // mark wikibase-sitelinkgrouplistview as red
+            const element = document.querySelector('div.wikibase-sitelinkgrouplistview');
+            element.style.outline = '2px solid red';
+        }
+    }
+
+    // Run the checks once the page has loaded
     window.addEventListener('load', checkNonNotableProperties);
+    window.addEventListener('load', checkSitelinks);
 })();
