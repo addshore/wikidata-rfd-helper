@@ -2,6 +2,8 @@
 // @name         Highlight Non-Notable Properties on Wikidata (Fork)
 // @namespace    https://www.wikidata.org/
 // @version      1.0
+// @downloadURL  https://raw.githubusercontent.com/addshore/wikidata-rfd-helper/refs/heads/main/script.js
+// @updateURL    https://raw.githubusercontent.com/addshore/wikidata-rfd-helper/refs/heads/main/script.js
 // @description  Highlights non-notable properties on Wikidata
 // @author       User:Shisma
 // @match        https://www.wikidata.org/wiki/*
