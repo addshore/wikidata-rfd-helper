@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Highlight Non-Notable Properties on Wikidata
+// @name         Highlight Non-Notable Properties on Wikidata (Fork)
 // @namespace    https://www.wikidata.org/
 // @version      1.0
 // @description  Highlights non-notable properties on Wikidata
@@ -37,9 +37,11 @@
     function checkNonNotableProperties() {
         // Select all statement group elements with an ID
         const elements = document.querySelectorAll('#identifiers + div .wikibase-statementgroupview[id]');
+        console.log(elements);
 
         elements.forEach(async (element) => {
             const id = element.id;
+            console.log(id)
             const apiURL = `https://www.wikidata.org/wiki/Special:EntityData/${id}.json`;
 
             try {
@@ -53,6 +55,7 @@
 
                 // If it's not notable, apply the red outline
                 if (isNotNotable) {
+                	console.log('highlighting');
                     element.style.outline = '2px solid red';
                 }
             } catch (error) {
