@@ -12,6 +12,18 @@
 (function() {
     'use strict';
 
+    if (document.referrer !== 'https://www.wikidata.org/wiki/Wikidata:Requests_for_deletions') {
+        // https://stackoverflow.com/questions/40153206/detect-if-console-devtools-is-open-in-all-browsers
+        // TODO add a button to trigger "RFD" view, instead of this debug check
+        var minimalUserResponseInMiliseconds = 100;
+        var before = new Date().getTime();
+        debugger;
+        var after = new Date().getTime();
+        if (after - before < minimalUserResponseInMiliseconds) { // user had to resume the script manually via opened dev tools 
+          return
+        }
+    }
+
     // Helper function to request JSON from a URL
     function fetchJSON(url) {
         return new Promise((resolve, reject) => {
@@ -30,40 +42,6 @@
                     reject(error);
                 }
             });
-        });
-    }
-
-    // Main function to check each property
-    function checkNonNotableProperties() {
-        // Select all statement group elements with an ID
-        const elements = document.querySelectorAll('#identifiers + div .wikibase-statementgroupview[id]');
-
-        elements.forEach(async (element) => {
-            const id = element.id;
-            const apiURL = `https://www.wikidata.org/wiki/Special:EntityData/${id}.json`;
-
-            try {
-                const data = await fetchJSON(apiURL);
-                const entity = data.entities[id];
-
-                // Check if the entity has a P31 → Q62589320 statement
-                const isNotNotable = entity.claims?.P31?.some(statement => {
-                    return statement.mainsnak?.datavalue?.value?.id === 'Q62589320';
-                });
-                const isMaybeNotable = entity.claims?.P31?.some(statement => {
-                    return statement.mainsnak?.datavalue?.value?.id === 'Q62589316';
-                });
-
-                // If it's not notable, apply the red outline
-                if (isNotNotable) {
-                    element.style.outline = '2px solid red';
-                }
-                if (isMaybeNotable) {
-                    element.style.outline = '2px solid lightgreen';
-                }
-            } catch (error) {
-                console.error(`Error fetching data for ${id}:`, error);
-            }
         });
     }
 
@@ -93,45 +71,71 @@
     // TODO if there are 0 statements, draw a red outline around the statements section
     // TODO if a statement has 0 references, draw a red outline around the references sections
 
-    function checkReferences() {
-        const elements = document.querySelectorAll('.wikibase-referenceview');
+    function checkStatementGroups() {
+        console.log('Checking statement groups');
         const siteIds = sitelinkIds();
         const P_referenceUrl = 'P854';
         const P_basedOnHeuristic = 'P887';
-        // Loop over each reference
-        elements.forEach(async (element) => {
-            let propertyValueMap = {};
-            // Find each wikibase-snaklistview in the referenceview (which is an indivudal snak)
-            const snakLists = element.querySelectorAll('.wikibase-snaklistview');
-            snakLists.forEach((snakList) => {
-                // Find the property ID
-                const propertyId = snakList.querySelector('.wikibase-snakview-property').childNodes[0].href.match(/Property:(P\d+)/)[1];
-                // Find the value of the property, which is in the text content of wikibase-snakview-value
-                const propertyValue = snakList.querySelector('.wikibase-snakview-value').textContent;
-                propertyValueMap[propertyId] = propertyValue;
-            });
-            // If a reference is based on a heuristic, it's not a reliable source, mark as red
-            if (propertyValueMap[P_basedOnHeuristic]) {
-                element.style.outline = '2px solid red';
-            }
-            // If a reference is a URL, and the domain is the the bad list, mark as red
-            const badList = [
-                'amazon.com',
-                'amazon.co.uk',
-            ]
-            if (propertyValueMap[P_referenceUrl]) {
-                const url = propertyValueMap[P_referenceUrl];
-                const domain = new URL(url).hostname;
-                if (badList.includes(domain)) {
-                    element.style.outline = '2px solid red';
+
+        // Each property used for statements creates 1 statement group view
+        const statementGroups = document.querySelectorAll('.wikibase-statementgroupview[id]');
+        statementGroups.forEach(async (statementGroup) => {
+            const statementGroupID = statementGroup.id;
+            console.log(statementGroupID);
+            // Each statement creates one statement view
+            const statementViews = statementGroup.querySelectorAll('.wikibase-statementview');
+            const apiURL = `https://www.wikidata.org/wiki/Special:EntityData/${statementGroupID}.json`;
+
+            try {
+                const data = await fetchJSON(apiURL);
+                const entity = data.entities[statementGroupID];
+
+                const isNotNotable = entity.claims?.P31?.some(statement => {
+                    return statement.mainsnak?.datavalue?.value?.id === 'Q62589320';
+                });
+                const isMaybeNotable = entity.claims?.P31?.some(statement => {
+                    return statement.mainsnak?.datavalue?.value?.id === 'Q62589316';
+                });
+
+                if (isNotNotable) {
+                    statementGroup.style.outline = '2px solid red';
                 }
+                if (isMaybeNotable) {
+                    statementGroup.style.outline = '2px solid lightgreen';
+                }
+            } catch (error) {
+                console.error(`Error fetching data for ${statementGroupID}:`, error);
             }
-            // TODO check if the reference says imported from Wikipedia (P143), but no such sitelink exists, then mark as red
+
+            statementViews.forEach(async (statementView) => {
+                const referenceViews = statementView.querySelectorAll('.wikibase-referenceview');
+                referenceViews.forEach(async (referenceView) => {
+                    const snakLists = referenceView.querySelectorAll('.wikibase-snaklistview');
+                    let propertyValueMap = {};
+                    snakLists.forEach((snakList) => {
+                        const propertyId = snakList.querySelector('.wikibase-snakview-property').childNodes[0].href.match(/Property:(P\d+)/)[1];
+                        const propertyValue = snakList.querySelector('.wikibase-snakview-value').textContent;
+                        propertyValueMap[propertyId] = propertyValue;
+                    });
+                    if (propertyValueMap[P_basedOnHeuristic]) {
+                        referenceView.style.outline = '2px solid red';
+                    }
+                    const badList = [
+                        'amazon.com',
+                        'amazon.co.uk',
+                    ]
+                    if (propertyValueMap[P_referenceUrl]) {
+                        const url = propertyValueMap[P_referenceUrl];
+                        const domain = new URL(url).hostname;
+                        if (badList.includes(domain)) {
+                            referenceView.style.outline = '2px solid red';
+                        }
+                    }
+                });
+            });
         });
     }
 
-    // Run the checks once the page has loaded
-    window.addEventListener('load', checkNonNotableProperties);
+    window.addEventListener('load', checkStatementGroups);
     window.addEventListener('load', checkSitelinks);
-    window.addEventListener('load', checkReferences);
 })();
