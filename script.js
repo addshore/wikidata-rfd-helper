@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Highlights non-notable elements of a Wikidata Item (Fork)
+// @name         Highlight Non-Notable Properties on Wikidata (Fork)
 // @namespace    https://www.wikidata.org/
 // @version      1.0
-// @description  Highlights non-notable elements of a Wikidata Item
-// @author       User:Shisma,User:Addshore
+// @description  Highlights non-notable properties on Wikidata
+// @author       User:Shisma
 // @match        https://www.wikidata.org/wiki/*
 // @grant        GM_xmlhttpRequest
 // @run-at       document-end
@@ -19,7 +19,7 @@
         var before = new Date().getTime();
         debugger;
         var after = new Date().getTime();
-        if (after - before < minimalUserResponseInMiliseconds) { // user had to resume the script manually via opened dev tools 
+        if (after - before < minimalUserResponseInMiliseconds) { // user had to resume the script manually via opened dev tools
           return
         }
     }
@@ -107,8 +107,12 @@
                 console.error(`Error fetching data for ${statementGroupID}:`, error);
             }
 
+            // Loop through each individual statement
             statementViews.forEach(async (statementView) => {
                 const referenceViews = statementView.querySelectorAll('.wikibase-referenceview');
+                if (referenceViews.length === 0) {
+                    statementView.style.outline = '2px solid red';
+                }
                 referenceViews.forEach(async (referenceView) => {
                     const snakLists = referenceView.querySelectorAll('.wikibase-snaklistview');
                     let propertyValueMap = {};
