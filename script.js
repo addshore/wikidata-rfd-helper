@@ -213,8 +213,25 @@
                         return;
                     }
                     const badList = [
+                        // Shops
                         'amazon.com',
                         'amazon.co.uk',
+                        // Socials
+                        'instagram.com',
+                        'tiktok.com',
+                        'facebook.com',
+                        'twitter.com',
+                        // URLs for IDs that don't infer notability
+                        'crunchbase.com', // https://www.wikidata.org/wiki/Property:P2087
+                    ]
+                    const probablyBadList = [
+                        // Translations
+                        'unalengua.com', // Just a translation service
+                        // Music listings
+                        'music.apple.com',
+                        'genius.com',
+                        // Just a youtube wrapper
+                        'upwindmusic.com', // Discovered from https://www.wikidata.org/wiki/Q116907159
                     ]
                     if (propertyValueMap[P_referenceUrl]) {
                         const url = propertyValueMap[P_referenceUrl];
@@ -222,6 +239,11 @@
                         if (badList.includes(domain)) {
                             referenceView.style.outline = '2px solid red';
                             referenceViewStates.push('red');
+                            return;
+                        }
+                        if (probablyBadList.includes(domain)) {
+                            referenceView.style.outline = '2px solid orange';
+                            referenceViewStates.push('orange');
                             return;
                         }
                     }
