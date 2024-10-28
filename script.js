@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Highlights non-notable parts of Wikidata items (Fork)
+// @name         Highlight Non-Notable Properties on Wikidata (Fork)
 // @namespace    https://www.wikidata.org/
 // @version      1.0
-// @description  Highlights non-notable parts of Wikidata items
-// @author       User:Shisma,User:Addshore
+// @description  Highlights non-notable properties on Wikidata
+// @author       User:Shisma
 // @match        https://www.wikidata.org/wiki/*
 // @grant        GM_xmlhttpRequest
 // @run-at       document-end
@@ -81,10 +81,11 @@
 
     function checkSitelinks() {
         const siteIds = sitelinkIds();
+        const element = document.querySelector('div.wikibase-sitelinkgrouplistview');
         if (siteIds.length === 0) {
-            // mark wikibase-sitelinkgrouplistview as red
-            const element = document.querySelector('div.wikibase-sitelinkgrouplistview');
             element.style.outline = '2px solid red';
+        } else {
+            element.style.outline = '2px solid lightgreen';
         }
     }
 
